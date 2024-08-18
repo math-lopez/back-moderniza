@@ -1,70 +1,115 @@
 const express = require('express');
 const router = express.Router();
+const AWS = require('aws-sdk');
+const { v4: uuidv4 } = require('uuid');
 
-let features = [{
-    id: 1,
-    name: 'Contratos',
-    frontEnd: {
-        dev: 90,
-        test: 70,
-        deploy: 60,
-        usage: 100
-    },
-    backEnd: {
-        dev: 56,
-        test: 70,
-        deploy: 66,
-        usage: 0
-    },
-    data: {
-        dev: 90,
-        test: 70,
-        deploy: 60,
-        usage: 0
-    }
-},];
+// Configura o DynamoDB
+AWS.config.update({
+    region: "us-east-1",
+    // Você pode precisar configurar suas credenciais aqui se estiver desenvolvendo localmente
+});
+
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const tableName = 'Features';  // Certifique-se de que esta tabela exista no DynamoDB
 
 // Criar um item
-router.post('/', (req, res) => {
-    let item = { ...req.body };
-    item.id = (features.length + 1);
-    features.push(item);
-    res.status(201).send(item);
+router.post('/', async (req, res) => {
+    const item = {
+        id: uuidv4(),
+        ...req.body
+    };
+
+    const params = {
+        TableName: tableName,
+        Item: item
+    };
+
+    try {
+        await dynamoDb.put(params).promise();
+        res.status(201).send(item);
+    } catch (err) {
+        res.status(500).send({ message: 'Erro ao criar o item', error: err });
+    }
 });
 
 // Ler todos os itens
-router.get('/', (req, res) => {
-    res.status(200).send(features);
+router.get('/', async (req, res) => {
+    const params = {
+        TableName: tableName
+    };
+
+    try {
+        const data = await dynamoDb.scan(params).promise();
+        res.status(200).send(data.Items);
+    } catch (err) {
+        res.status(500).send({ message: 'Erro ao ler os itens', error: err });
+    }
 });
 
 // Ler um item específico
-router.get('/:id', (req, res) => {
-    const id = req.params.id;
-    const item = features.find(i => i.id.toString() === id);
-    if (item) {
-        res.status(200).send(item);
-    } else {
-        res.status(404).send({ message: 'Item não encontrado' });
+router.get('/:id', async (req, res) => {
+    const params = {
+        TableName: tableName,
+        Key: {
+            id: req.params.id
+        }
+    };
+
+    try {
+        const data = await dynamoDb.get(params).promise();
+        if (data.Item) {
+            res.status(200).send(data.Item);
+        } else {
+            res.status(404).send({ message: 'Item não encontrado' });
+        }
+    } catch (err) {
+        res.status(500).send({ message: 'Erro ao ler o item', error: err });
     }
 });
 
 // Atualizar um item
-router.put('/:id', (req, res) => {
-    let id = req.params.id;
-    const index = features.findIndex(i => i.id.toString() === id);
-    if (index !== -1) {
-        features[index] = req.body;
-        res.status(200).send(features[index]);
-    } else {
-        res.status(404).send({ message: 'Item não encontrado' });
+router.put('/:id', async (req, res) => {
+    const params = {
+        TableName: tableName,
+        Key: {
+            id: req.params.id
+        },
+        UpdateExpression: "set #name = :name, frontEnd = :frontEnd, backEnd = :backEnd, data = :data",
+        ExpressionAttributeNames: {
+            "#name": "name"
+        },
+        ExpressionAttributeValues: {
+            ":name": req.body.name,
+            ":frontEnd": req.body.frontEnd,
+            ":backEnd": req.body.backEnd,
+            ":data": req.body.data
+        },
+        ReturnValues: "ALL_NEW"
+    };
+
+    try {
+        const data = await dynamoDb.update(params).promise();
+        res.status(200).send(data.Attributes);
+    } catch (err) {
+        res.status(500).send({ message: 'Erro ao atualizar o item', error: err });
     }
 });
 
 // Deletar um item
-router.delete('/:id', (req, res) => {
-    const id = req.params.id;
-    features = features.filter(i => i.id.toString() !== id);
-    res.status(200).send({ message: 'Item deletado' });
+router.delete('/:id', async (req, res) => {
+    const params = {
+        TableName: tableName,
+        Key: {
+            id: req.params.id
+        }
+    };
+
+    try {
+        await dynamoDb.delete(params).promise();
+        res.status(200).send({ message: 'Item deletado' });
+    } catch (err) {
+        res.status(500).send({ message: 'Erro ao deletar o item', error: err });
+    }
 });
 
 module.exports = router;
