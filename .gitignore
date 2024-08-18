@@ -1,0 +1,48 @@
+# Diretório de dependências do Node.js
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Diretório de ambientes (dependências gerenciadas pelo npm/yarn)
+.env
+
+# Diretório de output do coverage para testes
+coverage/
+
+# Diretório de compilação ou distribuição
+dist/
+build/
+
+# Diretórios de cache
+.cache/
+.next/
+out/
+.vscode/
+
+# Arquivos de configuração locais do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários de IDEs
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Arquivos gerados por debug
+*.log
+
+# Diretório de output do fluxo de dados
+.flow/
+
+# Diretório de output do servidor de desenvolvimento
+public/
+
+# Arquivos de Docker e outros containers
+Dockerfile
+docker-compose.yml
+
+# Arquivos de configuração específicos de ambientes de testes
+jest.config.js
